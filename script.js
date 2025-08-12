@@ -35,6 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function toggleMic() {
+        if (speechSynthesis.speaking) {
+            // Stop any ongoing speech
+            speechSynthesis.cancel();
+        }
+
+
         if (!recognition) {
             // Mejora: Mostrar el error en el chat en lugar de un alert.
             addMessage('Lo siento, el reconocimiento de voz no es compatible con este navegador. Por favor, usa Google Chrome o Microsoft Edge y asegúrate de que la página se sirve desde un servidor web (no como un archivo local).', 'bot');
@@ -53,7 +59,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onresult = (event) => {
             const spokenText = event.results[0][0].transcript;
+            // Determine spoken language
+            const language = event.results[0][0].lang || navigator.language || 'en-US';
+
+
             addMessage(spokenText, 'user');
+
             getAIResponse(spokenText, true); // true para auto-hablar
         };
 
@@ -93,11 +104,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function speak(text) {
-        // Detener cualquier locución anterior para evitar que se solapen.
-        speechSynthesis.cancel();
+          if (speechSynthesis.speaking) {
+            // If speech is already in progress, stop it
+            speechSynthesis.cancel();
+        }
 
         const utterance = new SpeechSynthesisUtterance(text);
-        // Al no especificar 'lang' ni 'voice', el navegador usará la voz
+        // This is key: set the language on the utterance
+        utterance.lang =  navigator.language || 'en-US'; // Use browser's language
+       // Al no especificar 'lang' ni 'voice', el navegador usará la voz
         // por defecto del sistema del usuario. Esto es ideal para un asistente
         // multilingüe, ya que la voz coincidirá con el idioma de la respuesta de la IA.
         speechSynthesis.speak(utterance);
@@ -124,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     // Estructura recomendada para modelos Gemini 1.5
-                    "systemInstruction": {
+                    "systemInstruction": { // was missing
                         "parts": [{ "text": parkingContext }]
                     },
                     "contents": [{

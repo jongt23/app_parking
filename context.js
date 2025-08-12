@@ -29,7 +29,7 @@ const parkingContext = `
     - Restaurantes: Este pueblo tiene una gran variedad de restaurantes. Algunos recomendados son 'La cueva del Bandolero', pero cualquier restaurante o bar tienen una alta calidad y atención al cliente. En el centro
     del pueblo hay varios, y en la zona turística también pero es mucho más concurrida o menos tranquila. Si quieren tranquilidad y buena comida, les recomiendo los del centro del pueblo. Si quiern mucho ambiente y no
     le importa esperar, los de la zona turística son ideales. La cola de espera puede ser muy alta en temporada alta, así que tengan paciencia.
-    - Hoteles: Hay un hotel cerca del parking. 'Hotel El Miador', esta justo al subir las escaleras ya en la calle abierta, las escaleras metálicas a la derecha y al llegar arriba del todo esta el hotel. También puedes
+    - Hoteles: Hay un hotel cerca del parking. 'Hotel El Mirador', esta justo al subir las escaleras ya en la calle abierta, las escaleras metálicas a la derecha y al llegar arriba del todo esta el hotel. También puedes
     comer ahí, tienen buena comida y un trato excelente. Si necesitan más información sobre hoteles, pueden preguntar en la oficina del parking o utilizar la aplicación móvil.
 
     ## GESTIÓN DE IDIOMAS ##
