@@ -124,20 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function getAIResponse(userText, autoSpeak = false) {
-        // --- CONTEXTO DEL PARKING ---
-        const parkingContext = `
-            Eres un asistente virtual de un parking moderno e inteligente.
-            Tu nombre es Parky. Responde de forma breve y amable.
-            Contexto del parking:
-            - Hay 3 plantas: P1 (azul), P2 (verde), P3 (naranja).
-            - P1 es para vehículos eléctricos y tiene 20 cargadores.
-            - P2 es para familias y tiene plazas anchas.
-            - P3 es general.
-            - Precios: 2€/hora para coches, 1€/hora para motos. Los eléctricos tienen 30 min gratis.
-            - Horario: 24/7.
-            - No se puede reservar plaza.
-            - Para entrar, la barrera lee tu matrícula. Para salir, pagas en el cajero o con la app 'ParkyPay'.
-        `;
+        // El contexto del parking ahora se carga desde el archivo context.js
+        // y está disponible globalmente como la variable 'parkingContext'.
 
         // --- LLAMADA A LA API DE IA REAL ---
         console.log('Enviando a IA:', userText);
