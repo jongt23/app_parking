@@ -7,27 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
-    let bestSpanishVoice = null;
-
-    // Función para encontrar y seleccionar la mejor voz en español disponible en el navegador.
-    function findBestVoice() {
-        const voices = speechSynthesis.getVoices();
-        // Damos prioridad a las voces de "Google" o "Microsoft" porque suelen ser de mayor calidad.
-        bestSpanishVoice = voices.find(voice => voice.lang.startsWith('es') && voice.name.includes('Google')) ||
-                           voices.find(voice => voice.lang.startsWith('es') && voice.name.includes('Microsoft')) ||
-                           voices.find(voice => voice.lang.startsWith('es'));
-
-        if (bestSpanishVoice) {
-            console.log('Voz de alta calidad seleccionada:', bestSpanishVoice.name);
-        }
-    }
-
-    // Las voces se cargan de forma asíncrona, así que escuchamos el evento 'voiceschanged'.
-    speechSynthesis.addEventListener('voiceschanged', findBestVoice);
-    findBestVoice(); // Intento inicial por si ya están cargadas.
-
     if (recognition) {
-        recognition.lang = 'es-ES'; // Se puede ajustar o detectar dinámicamente
+        // Al no especificar un idioma, el reconocimiento de voz usará el idioma
+        // por defecto del navegador del usuario, permitiendo un uso multilingüe.
+        // recognition.lang = 'es-ES';
         recognition.interimResults = false;
     }
 
@@ -114,12 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
         speechSynthesis.cancel();
 
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'es-ES';
-
-        // Si encontramos una voz de alta calidad, la usamos.
-        if (bestSpanishVoice) {
-            utterance.voice = bestSpanishVoice;
-        }
+        // Al no especificar 'lang' ni 'voice', el navegador usará la voz
+        // por defecto del sistema del usuario. Esto es ideal para un asistente
+        // multilingüe, ya que la voz coincidirá con el idioma de la respuesta de la IA.
         speechSynthesis.speak(utterance);
     }
 
