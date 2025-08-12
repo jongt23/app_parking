@@ -7,6 +7,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
+    let bestSpanishVoice = null;
+
+    // Función para encontrar y seleccionar la mejor voz en español disponible en el navegador.
+    function findBestVoice() {
+        const voices = speechSynthesis.getVoices();
+        // Damos prioridad a las voces de "Google" o "Microsoft" porque suelen ser de mayor calidad.
+        bestSpanishVoice = voices.find(voice => voice.lang.startsWith('es') && voice.name.includes('Google')) ||
+                           voices.find(voice => voice.lang.startsWith('es') && voice.name.includes('Microsoft')) ||
+                           voices.find(voice => voice.lang.startsWith('es'));
+
+        if (bestSpanishVoice) {
+            console.log('Voz de alta calidad seleccionada:', bestSpanishVoice.name);
+        }
+    }
+
+    // Las voces se cargan de forma asíncrona, así que escuchamos el evento 'voiceschanged'.
+    speechSynthesis.addEventListener('voiceschanged', findBestVoice);
+    findBestVoice(); // Intento inicial por si ya están cargadas.
+
     if (recognition) {
         recognition.lang = 'es-ES'; // Se puede ajustar o detectar dinámicamente
         recognition.interimResults = false;
@@ -34,7 +53,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleMic() {
         if (!recognition) {
-            alert('El reconocimiento de voz no es compatible con este navegador.');
+            // Mejora: Mostrar el error en el chat en lugar de un alert.
+            addMessage('Lo siento, el reconocimiento de voz no es compatible con este navegador. Por favor, usa Google Chrome o Microsoft Edge y asegúrate de que la página se sirve desde un servidor web (no como un archivo local).', 'bot');
+            micBtn.disabled = true;
+            micBtn.style.opacity = '0.6';
+            micBtn.style.cursor = 'not-allowed';
             return;
         }
         if (micBtn.classList.contains('listening')) {
@@ -83,17 +106,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         chatBox.appendChild(messageElement);
         chatBox.scrollTop = chatBox.scrollHeight;
+        return messageElement; // Devolvemos el elemento para poder manipularlo después
     }
 
     function speak(text) {
+        // Detener cualquier locución anterior para evitar que se solapen.
+        speechSynthesis.cancel();
+
         const utterance = new SpeechSynthesisUtterance(text);
-        // La API puede devolver el código de idioma (ej. 'en-US', 'es-ES')
-        // Aquí lo forzamos a español para la simulación.
-        utterance.lang = 'es-ES'; 
+        utterance.lang = 'es-ES';
+
+        // Si encontramos una voz de alta calidad, la usamos.
+        if (bestSpanishVoice) {
+            utterance.voice = bestSpanishVoice;
+        }
         speechSynthesis.speak(utterance);
     }
 
-        async function getAIResponse(userText, autoSpeak = false) {
+    async function getAIResponse(userText, autoSpeak = false) {
         // --- CONTEXTO DEL PARKING ---
         const parkingContext = `
             Eres un asistente virtual de un parking moderno e inteligente.
@@ -111,9 +141,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- LLAMADA A LA API DE IA REAL ---
         console.log('Enviando a IA:', userText);
-        addMessage('Pensando...', 'bot'); // Mensaje de "escribiendo..."
+        const thinkingMessage = addMessage('Pensando...', 'bot'); // Guardamos referencia al mensaje "escribiendo..."
 
-        const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'; // URL del endpoint de Gemini Pro
+        // CORRECCIÓN: Cambiamos al modelo gemini-1.5-flash-latest, que es más moderno y puede tener mayor disponibilidad.
+        // También ajustamos la estructura del body para usar "systemInstruction", que es la forma recomendada de dar contexto.
+        const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
         const API_KEY = 'AIzaSyDWExn7DOXT8OfvxKPoOxIf92fwHGNTfPE'; // TU API KEY REAL
 
         try {
@@ -123,27 +155,42 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    contents: [
-                        { parts: [{ text: parkingContext + "\n\nUsuario: " + userText }] }
-                    ]
+                    // Estructura recomendada para modelos Gemini 1.5
+                    "systemInstruction": {
+                        "parts": [{ "text": parkingContext }]
+                    },
+                    "contents": [{
+                        "role": "user",
+                        "parts": [{ "text": userText }]
+                    }]
                 })
             });
 
+            // Eliminamos el mensaje "Pensando..." tan pronto como tengamos una respuesta, antes de procesarla.
+            if (thinkingMessage) {
+                chatBox.removeChild(thinkingMessage);
+            }
+
             if (!response.ok) {
-                throw new Error('Error en la respuesta de la API');
+                const errorData = await response.json().catch(() => ({ message: 'No se pudo leer el cuerpo del error.' }));
+                console.error('Detalles del error de la API:', errorData);
+                throw new Error(`Error en la respuesta de la API: ${response.status}`);
             }
 
             const data = await response.json();
-            const aiText = data.candidates[0].content.parts[0].text;
-            
-            // Eliminar el mensaje "Pensando..."
-            const allMessages = chatBox.querySelectorAll('.bot-message');
-            chatBox.removeChild(allMessages[allMessages.length - 1]);
-
-            addMessage(aiText, 'bot', autoSpeak);
-
+            // Comprobación robusta de que la respuesta tiene el formato esperado
+            if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts) {
+                const aiText = data.candidates[0].content.parts[0].text;
+                addMessage(aiText, 'bot', autoSpeak);
+            } else {
+                console.warn('La API no devolvió candidatos o la respuesta estaba vacía. Respuesta completa:', data);
+                addMessage('No he podido generar una respuesta para eso. Intenta con otra pregunta.', 'bot');
+            }
         } catch (error) {
             console.error('Error al contactar la IA:', error);
+            if (thinkingMessage && thinkingMessage.parentNode) { // Si el mensaje "Pensando..." aún existe, lo eliminamos
+                chatBox.removeChild(thinkingMessage);
+            }
             addMessage('Lo siento, no puedo responder en este momento.', 'bot');
         }
     }
