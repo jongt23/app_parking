@@ -39,6 +39,7 @@ body {
 .chat-input {
     position: sticky;
     bottom: 0;
+}
 
 .user-message {
     background-color: #007bff;
